@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { WasteAnalysisResult } from '../types';
 import { speakText, stopSpeaking, playSuccessChime } from '../utils/audio';
+import { chatFollowupClient } from '../utils/geminiClient';
 
 interface AnalysisModalProps {
   result: WasteAnalysisResult;
@@ -153,20 +154,27 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({
           question: userQ,
         }),
       });
-      const data = await res.json();
-      if (data.success && data.answer) {
-        setChatMessages((prev) => [...prev, { sender: 'ai', text: data.answer }]);
-      } else {
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.answer) {
+          setChatMessages((prev) => [...prev, { sender: 'ai', text: data.answer }]);
+          return;
+        }
+      }
+      // If 404 on GitHub Pages or server error, fallback to client-side
+      const clientAnswer = await chatFollowupClient(result.itemName, result.categoryName, userQ);
+      setChatMessages((prev) => [...prev, { sender: 'ai', text: clientAnswer }]);
+    } catch {
+      try {
+        const clientAnswer = await chatFollowupClient(result.itemName, result.categoryName, userQ);
+        setChatMessages((prev) => [...prev, { sender: 'ai', text: clientAnswer }]);
+      } catch (clientErr: any) {
         setChatMessages((prev) => [
           ...prev,
-          { sender: 'ai', text: data.error || '抱歉，暫時無法回答此問題，請稍候重試。' },
+          { sender: 'ai', text: clientErr?.message || '網路連線異常，請稍後再試。' },
         ]);
       }
-    } catch (err: any) {
-      setChatMessages((prev) => [
-        ...prev,
-        { sender: 'ai', text: '網路連線異常，請稍後再試。' },
-      ]);
     } finally {
       setIsAsking(false);
     }

@@ -1,13 +1,19 @@
 import React from 'react';
-import { Camera, BookOpen, Award, History, Recycle, Sparkles } from 'lucide-react';
+import { Camera, BookOpen, Award, History, Recycle, Sparkles, Key } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'camera' | 'guide' | 'quiz' | 'history';
   onTabChange: (tab: 'camera' | 'guide' | 'quiz' | 'history') => void;
   ecoPoints: number;
+  onOpenApiKeyModal?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, ecoPoints }) => {
+export const Header: React.FC<HeaderProps> = ({
+  activeTab,
+  onTabChange,
+  ecoPoints,
+  onOpenApiKeyModal,
+}) => {
   const tabs = [
     { id: 'camera', label: '鏡頭掃描', icon: Camera },
     { id: 'guide', label: '分類圖鑑', icon: BookOpen },
@@ -64,13 +70,28 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, ecoPoint
           })}
         </nav>
 
-        {/* Eco Points Badge */}
-        <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-full shadow-xs">
-          <Sparkles className="w-4 h-4 text-emerald-500" />
-          <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300">
-            {ecoPoints}
-          </span>
-          <span className="text-[10px] text-emerald-600/80 font-bold">點數</span>
+        {/* Actions: API Key & Eco Points */}
+        <div className="flex items-center gap-2">
+          {onOpenApiKeyModal && (
+            <button
+              type="button"
+              onClick={onOpenApiKeyModal}
+              title="設定 Gemini API Key"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Key className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden sm:inline">API Key</span>
+            </button>
+          )}
+
+          {/* Eco Points Badge */}
+          <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-full shadow-xs">
+            <Sparkles className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300">
+              {ecoPoints}
+            </span>
+            <span className="text-[10px] text-emerald-600/80 font-bold">點數</span>
+          </div>
         </div>
       </div>
 

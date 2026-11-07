@@ -4,8 +4,9 @@ import { SAMPLE_ITEMS, SampleItem } from '../data/sampleItems';
 import { playCameraShutterSound } from '../utils/audio';
 
 interface CameraScannerProps {
-  onAnalyze: (imageDataUrl: string, sampleDescription?: string) => void;
+  onAnalyze: (imageDataUrl: string, sampleDescription?: string, sampleId?: string) => void;
   isAnalyzing: boolean;
+  onOpenApiKeyModal?: () => void;
 }
 
 export const CameraScanner: React.FC<CameraScannerProps> = ({ onAnalyze, isAnalyzing }) => {
@@ -183,9 +184,9 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onAnalyze, isAnaly
     setSelectedSample(sample);
     if (sample.dataUrl.startsWith('data:image/svg+xml')) {
       const pngData = await rasterizeSvgToPng(sample.dataUrl);
-      onAnalyze(pngData, sample.name + ' - ' + sample.description);
+      onAnalyze(pngData, sample.name + ' - ' + sample.description, sample.id);
     } else {
-      onAnalyze(sample.dataUrl, sample.name + ' - ' + sample.description);
+      onAnalyze(sample.dataUrl, sample.name + ' - ' + sample.description, sample.id);
     }
   };
 

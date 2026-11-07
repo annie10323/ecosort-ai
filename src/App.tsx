@@ -5,7 +5,10 @@ import { AnalysisModal } from './components/AnalysisModal';
 import { GuideSection } from './components/GuideSection';
 import { QuizSection } from './components/QuizSection';
 import { ScanHistory } from './components/ScanHistory';
+import { ApiKeyModal } from './components/ApiKeyModal';
 import { WasteAnalysisResult, ScanHistoryItem } from './types';
+import { SAMPLE_PRESET_RESULTS } from './data/sampleResults';
+import { getUserApiKey, classifyWithGeminiClient } from './utils/geminiClient';
 import { AlertCircle, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
 
 const STORAGE_KEY = 'ecosort_scan_history_v1';
@@ -17,6 +20,7 @@ export default function App() {
   const [currentImage, setCurrentImage] = useState<string>('');
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
   // History state loaded from localStorage
   const [history, setHistory] = useState<ScanHistoryItem[]>(() => {
@@ -44,31 +48,62 @@ export default function App() {
     0
   );
 
-  const handleAnalyze = async (imageDataUrl: string, sampleDescription?: string) => {
+  const handleAnalyze = async (
+    imageDataUrl: string,
+    sampleDescription?: string,
+    sampleId?: string
+  ) => {
     try {
       setIsAnalyzing(true);
       setErrorMessage(null);
       setCurrentImage(imageDataUrl);
 
-      const response = await fetch('/api/classify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: imageDataUrl,
-          userPrompt: sampleDescription,
-          region: 'tw',
-        }),
-      });
+      let result: WasteAnalysisResult | null = null;
 
-      const data = await response.json();
+      // 1. If sample matches built-in preset, load immediately (flawless on GitHub Pages or local)
+      if (sampleId && SAMPLE_PRESET_RESULTS[sampleId]) {
+        result = SAMPLE_PRESET_RESULTS[sampleId];
+      } else {
+        // 2. Try Express server API first (if running locally)
+        try {
+          const response = await fetch('/api/classify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageBase64: imageDataUrl,
+              userPrompt: sampleDescription,
+              region: 'tw',
+            }),
+          });
 
-      if (!response.ok || !data.success || !data.result) {
-        throw new Error(data.error || '無法辨識該物品，請嘗試更清晰或光線更充足的照片。');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.result) {
+              result = data.result;
+            }
+          }
+        } catch {
+          // Server fetch failed or 404 (e.g. on GitHub Pages)
+        }
+
+        // 3. Fallback to client-side direct Gemini API if API key configured
+        if (!result) {
+          const apiKey = getUserApiKey();
+          if (apiKey) {
+            result = await classifyWithGeminiClient(imageDataUrl, sampleDescription, apiKey);
+          } else {
+            throw new Error(
+              '目前處於 GitHub Pages 靜態展示模式。請點擊右上角「API Key」設定您的 Gemini API Key 進行拍照辨識，或直接點選下方 6 款測試樣品立即免 Key 完整體驗！'
+            );
+          }
+        }
       }
 
-      const result: WasteAnalysisResult = data.result;
-      const historyId = 'scan_' + Date.now();
+      if (!result) {
+        throw new Error('無法辨識該物品，請嘗試更清晰或光線更充足的照片。');
+      }
 
+      const historyId = 'scan_' + Date.now();
       const newHistoryItem: ScanHistoryItem = {
         id: historyId,
         timestamp: Date.now(),
@@ -128,6 +163,7 @@ export default function App() {
           setErrorMessage(null);
         }}
         ecoPoints={totalEcoPoints}
+        onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
       />
 
       {/* Error Toast Banner */}
@@ -141,7 +177,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setErrorMessage(null)}
-              className="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200 font-bold text-xs"
+              className="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200 font-bold text-xs cursor-pointer"
             >
               關閉
             </button>
@@ -162,7 +198,11 @@ export default function App() {
               </p>
             </div>
 
-            <CameraScanner onAnalyze={handleAnalyze} isAnalyzing={isAnalyzing} />
+            <CameraScanner
+              onAnalyze={handleAnalyze}
+              isAnalyzing={isAnalyzing}
+              onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+            />
           </div>
         )}
 
@@ -189,6 +229,12 @@ export default function App() {
           onCompleteSorting={handleCompleteSorting}
         />
       )}
+
+      {/* API Key Modal */}
+      <ApiKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+      />
 
       {/* Footer Info */}
       <footer className="mt-auto border-t border-slate-200 dark:border-slate-800/80 py-4 text-center text-xs text-slate-600 dark:text-slate-300">
