@@ -1,0 +1,6 @@
+{
+  "name": "EcoSort AI - 智慧垃圾分類辨識助手",
+  "description": "利用 AI 鏡頭即時掃描辨識垃圾與資源回收物品，自動判斷分類類別、拆解多材質部件，並提供正確清洗與丟棄指引。",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
