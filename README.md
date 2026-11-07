@@ -2,6 +2,8 @@
 
 > 一款基於 **Google Gemini 視覺模型** 的智慧環保 Web 應用。使用者可透過**手機/電腦鏡頭即時掃描**、**相簿照片上傳**或**拖曳圖片**，自動辨識廢棄物種類、指示對應投遞桶別、細部拆解複合材質，並提供互動式清洗檢核表與「源頭減量」生活提案。
 
+👉 **[🌐 線上即時體驗 Demo (GitHub Pages)](https://annie10323.github.io/ecosort-ai/)**
+
 [![React](https://img.shields.io/badge/React-19.0-61dafb.svg?style=flat&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.0+-646cff.svg?style=flat&logo=vite)](https://vitejs.dev/)
