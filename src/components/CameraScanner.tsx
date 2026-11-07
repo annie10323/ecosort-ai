@@ -34,14 +34,29 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onAnalyze, isAnaly
         throw new Error('此瀏覽器或裝置不支援相機 API，請改用「上傳照片」或下方「快速範例」。');
       }
 
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: mode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
+      let newStream: MediaStream | null = null;
+
+      // Try with facingMode constraint first
+      try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: mode },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch {
+        // Fallback to basic video: true for desktop webcams
+        newStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
+
+      if (!newStream) {
+        throw new Error('無法取得鏡頭影像');
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = newStream;
@@ -61,9 +76,13 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onAnalyze, isAnaly
       }
     } catch (err: any) {
       console.warn('Camera start error:', err);
-      let msg = '無法啟動相機。請確認已允許相機存取權限，或直接「上傳照片」及點選「快速範例」。';
+      let msg = '無法啟動相機。請確認已允許相機存取權限，或直接「上傳照片」及點選下方「快速範例」。';
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        msg = '相機存取權限遭拒絕。請在瀏覽器設定中開啟相機權限，或直接上傳照片辨識。';
+        msg = '相機存取權限遭拒絕。請點擊網址列左側圖示（鎖頭或網站設定）將相機改為「允許」並重新整理頁面。';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        msg = '未偵測到攝影機/相機鏡頭。若使用桌上型電腦，請直接點選「開啟相簿選取照片」或拖曳照片辨識。';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        msg = '相機鏡頭正被其他應用程式（如 Zoom、Teams、Line 等）佔用，請關閉後再點擊「重新連接相機」。';
       }
       setCameraError(msg);
       setIsCameraActive(false);
